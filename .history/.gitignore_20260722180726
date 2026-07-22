@@ -1,0 +1,45 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+conda-env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Gaia catalog data
+*.fits
+*.vot
+*.csv
+
+# Generated sky maps and cache files
+*.png
+*.npz
+
+# Animation frames
+frames_micro/
+frames/
+*.tmp
+
+# Generated videos
+*.mp4
+*.mov
+
+# Logs
+*.log
+
+# Temporary files
+*.bak
+*.swp
