@@ -54,40 +54,38 @@ Projekt składa się z trzech zintegrowanych modułów Pythona:
 
 ## 🏗 Architektura i Struktura Kodu
 
+Projekt jest podzielony na trzy główne moduły odpowiedzialne za osobne etapy przetwarzania danych Gaia DR3:
+
 ```text
 .
-├── download_gaia_catalog.py        # Skrypt pobierający zjawiska mikrosoczewkowania z Gaia TAP (ADQL)
-├── gaia_allsky_map.py              # Generator statycznej mapy całego nieba (projekcja Hammera 16K)
-├── microlensing_animation.py       # Renderer animacji mikrosoczewkowania i generator wideo
-├── gaia_150m_allsky.fits          # Wejściowy katalog gwiazd Gaia (150 mln rekordów)
-├── gaia_microlensing.fits         # Pobierane/generowane zjawiska mikrosoczewkowania FITS
-├── gaia_allsky_hammer_16k.png     # Buforowana mapa całego nieba
-├── gaia_allsky_hammer_16k_layout.npz # Buforowane metadane układu osi i widoku
-├── frames_micro/                  # Katalog wyjściowy z renderowanymi klatkami animacji PNG
-├── microlensing_animation.mp4     # Finalna animacja w rozdzielczości 16K
-├── microlensing_animation_git.mp4 # Wideo H.265 z tagiem hvc1 dla zgodności Apple
-└── microlensing_animation_8k.mp4  # Opcjonalne wideo 8K dla urządzeń mobilnych
+├── download_gaia_catalog.py          # Pobieranie katalogu gwiazd Gaia DR3 lub danych wymaganych przez pipeline
+├── download_gaia_microlensing.py     # Pobieranie katalogu zdarzeń mikrosoczewkowania Gaia DR3
+├── gaia_allsky_map.py                # Generowanie mapy całego nieba Drogi Mlecznej w projekcji Hammera
+├── microlensing_animation.py         # Renderowanie animacji mikrosoczewkowania i kodowanie wideo
+├── README.md                         # Dokumentacja projektu
+├── LICENSE                           # Licencja MIT
+├── requirements.txt                  # Lista wymaganych bibliotek Python
+├── gaia_150m_allsky.fits             # Lokalny katalog gwiazd Gaia (dane użytkownika)
+├── gaia_microlensing.fits            # Katalog zdarzeń mikrosoczewkowania Gaia
+├── gaia_allsky_hammer_16k.png        # Wygenerowana mapa bazowa całego nieba
+├── gaia_allsky_hammer_16k_layout.npz # Dane pomocnicze mapy i układu współrzędnych
+├── frames_micro/                     # Tymczasowe klatki animacji
+└── microlensing_animation_*.mp4      # Wygenerowane pliki wideo
 ```
 
-### Zakresy modułów:
+### Zakres odpowiedzialności modułów:
 
 #### `download_gaia_catalog.py`
-* Nawiązuje asynchroniczne połączenie z serwerem ESA Gaia TAP przez `astroquery.gaia.Gaia.launch_job_async`.
-* Wykonuje zapytanie ADQL łączące `gaiadr3.vari_microlensing` i `gaiadr3.gaia_source`.
-* Waliduje i filtruje dane (usuwa brakujące współrzędne, nieprawidłowe paralaksy).
-* Zapisuje wynik do pliku FITS (`gaia_microlensing.fits`), pomijając pobieranie jeśli plik już istnieje.
+Odpowiada za pobieranie danych katalogowych Gaia DR3 wymaganych do stworzenia mapy gwiazd. Wykorzystuje zapytania ADQL przez `astroquery.gaia` i zapisuje wynik w formacie FITS.
+
+#### `download_gaia_microlensing.py`
+Pobiera z archiwum Gaia DR3 informacje o potwierdzonych zdarzeniach mikrosoczewkowania z tabeli `gaiadr3.vari_microlensing`, łącząc je z podstawowymi parametrami gwiazd.
 
 #### `gaia_allsky_map.py`
-* Ładuje tabelę FITS (`astropy.table.Table`) i filtruje poprawne punkty danych.
-* Przelicza długość galaktyczną $l$ na radiany z astronomiczną konwencją (negacja $l$, Wschód po lewej).
-* Oblicza ważony histogram 2D `np.histogram2d` i wygładza przestrzennie przez `gaussian_filter`.
-* Nakłada siatkę galaktyczną, oznaczenia kątowe, etykiety osi i eksportuje PNG 16K oraz metadane `.npz`.
+Przetwarza katalog gwiazd Gaia, przelicza współrzędne galaktyczne oraz jasności gwiazd na mapę powierzchniową Drogi Mlecznej. Generuje wysokorozdzielczy obraz PNG używany jako tło animacji.
 
 #### `microlensing_animation.py`
-* Inicjalizuje środowisko jednoprocesorowe dla bibliotek C/Fortran (`OMP_NUM_THREADS=1` itd.), by zapobiec walce o rdzenie CPU.
-* Oblicza analityczne pozycje pikseli $(p_x, p_y)$ na płótnie PNG bez użycia rendererów Matplotlib.
-* Renderuje sekwencje klatek równolegle z profilem Gaussa $I(r) = \exp(-r^2 / 2\sigma^2)$.
-* Wywołuje podprocesy `ffmpeg` do kodowania klatek do formatu wideo H.265 / HEVC z automatycznym tagiem.
+Wczytuje mapę bazową i katalog zdarzeń mikrosoczewkowania, oblicza przebieg jasności według modelu Paczyńskiego, renderuje błyski oraz tworzy końcowe pliki wideo przy pomocy FFmpeg.
 
 ---
 
@@ -286,40 +284,38 @@ The project consists of three integrated Python modules:
 
 ## 🏗 Architecture and Code Structure
 
+The project is divided into three main Python modules, each responsible for a different stage of the Gaia DR3 processing pipeline:
+
 ```text
 .
-├── download_gaia_catalog.py        # Script to download microlensing events from Gaia TAP (ADQL)
-├── gaia_allsky_map.py              # Static base all-sky map generator (16K Hammer projection)
-├── microlensing_animation.py       # Microlensing animation renderer and video generator
-├── gaia_150m_allsky.fits          # Gaia star catalog input (150M records)
-├── gaia_microlensing.fits         # Downloaded/generated microlensing events FITS file
-├── gaia_allsky_hammer_16k.png     # Cached all-sky map image
-├── gaia_allsky_hammer_16k_layout.npz # Cached axis and view layout metadata
-├── frames_micro/                  # Output directory with rendered PNG animation frames
-├── microlensing_animation.mp4     # Final 16K resolution animation video
-├── microlensing_animation_git.mp4 # H.265 video tagged with hvc1 for Apple compatibility
-└── microlensing_animation_8k.mp4  # Optional 8K downscaled video for mobile devices
+├── download_gaia_catalog.py          # Downloads Gaia DR3 stellar catalog data
+├── download_gaia_microlensing.py     # Downloads Gaia DR3 microlensing event catalog
+├── gaia_allsky_map.py                # Generates the Galactic all-sky Hammer projection map
+├── microlensing_animation.py         # Renders microlensing animation and creates videos
+├── README.md                         # Project documentation
+├── LICENSE                           # MIT license
+├── requirements.txt                  # Python dependencies
+├── gaia_150m_allsky.fits             # Local Gaia star catalog (user data)
+├── gaia_microlensing.fits            # Gaia microlensing events catalog
+├── gaia_allsky_hammer_16k.png        # Generated all-sky background map
+├── gaia_allsky_hammer_16k_layout.npz # Cached map layout metadata
+├── frames_micro/                     # Temporary rendered animation frames
+└── microlensing_animation_*.mp4      # Generated video outputs
 ```
 
-### Module Responsibilities:
+### Module responsibilities:
 
 #### `download_gaia_catalog.py`
-* Establishes asynchronous connection to ESA Gaia TAP server using `astroquery.gaia.Gaia.launch_job_async`.
-* Executes ADQL query joining `gaiadr3.vari_microlensing` and `gaiadr3.gaia_source`.
-* Validates and filters data (removes missing coordinates, invalid parallaxes).
-* Saves output to FITS file (`gaia_microlensing.fits`), skipping download if file already exists.
+Downloads Gaia DR3 catalog data required for stellar map generation using ADQL queries through `astroquery.gaia` and saves results as FITS files.
+
+#### `download_gaia_microlensing.py`
+Downloads confirmed Gaia DR3 microlensing events from the `gaiadr3.vari_microlensing` table and combines them with relevant stellar parameters.
 
 #### `gaia_allsky_map.py`
-* Loads FITS table (`astropy.table.Table`) and filters valid data points.
-* Converts Galactic longitude $l$ to radians with astronomical convention (negation of $l$, East to the left).
-* Computes weighted 2D histogram `np.histogram2d` and spatial smoothing via `gaussian_filter`.
-* Overlays Galactic grid, angular markings, axis labels, and exports 16K PNG plus `.npz` layout metadata.
+Processes Gaia stellar data, converts Galactic coordinates and brightness values into a surface brightness map of the Milky Way, and generates the high-resolution PNG background used by the animation engine.
 
 #### `microlensing_animation.py`
-* Initializes single-threaded environment for C/Fortran libraries (`OMP_NUM_THREADS=1` etc.) to prevent CPU core contention.
-* Calculates analytical pixel positions $(p_x, p_y)$ on the PNG canvas without using Matplotlib's renderer.
-* Renders frame sequences in parallel using Gaussian smoothing profile $I(r) = \exp(-r^2 / 2\sigma^2)$.
-* Invokes `ffmpeg` subprocesses to encode frame streams into H.265 / HEVC video format with automatic tagging.
+Loads the generated map and microlensing catalog, calculates Paczynski light curves, renders brightness events, and produces final video files using FFmpeg.
 
 ---
 
